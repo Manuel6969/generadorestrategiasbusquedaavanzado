@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constructor de Estrategias de Búsqueda Bibliográfica — BCS UniOvi</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f6f8;
+  color: #1f5a42;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 0 40px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.app-header {
+  background: linear-gradient(135deg, #1f5a42 0%, #145f50 100%);
+  color: #fff;
+  padding: 20px 24px 16px;
+  border-bottom: 3px solid #e6a817;
+}
+.app-header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+.app-header p {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.65);
+}
+
+/* ============================================================
+   AYUDA DESPLEGABLE
+   ============================================================ */
+.ayuda-bar {
+  background: #fff;
+  border-bottom: 1px solid #dde3ea;
+  padding: 0 24px;
+}
+.ayuda-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #145f50;
+  border: none;
+  background: none;
+  user-select: none;
+}
+.ayuda-toggle:hover { color: #1f6b56; }
+.ayuda-toggle .ico { font-size: 1rem; }
+.ayuda-toggle .chevron { margin-left: auto; transition: transform 0.2s; font-size: 0.7rem; color: #888; }
+.ayuda-toggle.open .chevron { transform: rotate(180deg); }
+
+.ayuda-panel {
+  display: none;
+  padding: 0 0 16px;
+}
+.ayuda-panel.open { display: block; }
+
+.ayuda-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.ayuda-card {
+  background: #f0f7ff;
+  border: 1px solid #c5ddf5;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.ayuda-card h4 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #145f50;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ayuda-card p {
+  font-size: 0.74rem;
+  color: #2d8b72;
+  line-height: 1.5;
+}
+.op-tag {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+}
+.op-tag.and { background: #e6f4ef; color: #1f6b56; }
+.op-tag.or  { background: #dcfce7; color: #166534; }
+.op-tag.not { background: #fee2e2; color: #991b1b; }
+
+.ayuda-pasos {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.76rem;
+  color: #78350f;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+}
+.ayuda-pasos strong { color: #92400e; }
+.paso {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.paso-num {
+  background: #f59e0b;
+  color: #fff;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   CUERPO PRINCIPAL
+   ============================================================ */
+.main-body { padding: 16px 24px 0; }
+
+/* ============================================================
+   BARRA DE ESQUEMAS
+   ============================================================ */
+.esquemas-section { margin-bottom: 14px; }
+.esquemas-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a9e85;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+.esquemas-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.btn-esquema {
+  background: #2d6a50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-esquema:hover { background: #1a3347; }
+.btn-esquema.activo { background: #9b2335; }
+.btn-esquema:active { transform: scale(0.97); }
+
+/* ============================================================
+   GRID DE CAJAS
+   ============================================================ */
+#cajas-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/* ============================================================
+   CAJA
+   ============================================================ */
+.caja {
+  background: #fff;
+  border: 1px solid #c0e0d4;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  animation: fadeSlide 0.2s ease;
+}
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.caja.exclusion { border-top: 3px solid #9b2335; }
+
+.caja-head {
+  background: #f0f8f5;
+  border-bottom: 1px solid #c0e0d4;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.caja-num {
+  background: #2d6a50;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.caja.exclusion .caja-num { background: #9b2335; }
+.caja-nombre {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f5a42;
+  outline: none;
+  min-width: 0;
+}
+.caja-nombre:focus { color: #145f50; }
+.caja-del {
+  background: none;
+  border: none;
+  color: #aab5c0;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.13s;
+  line-height: 1;
+}
+.caja-del:hover { background: #fee2e2; color: #b91c1c; }
+
+.caja-body { padding: 10px 12px; flex: 1; }
+
+.caja-textarea {
+  width: 100%;
+  height: 110px;
+  border: 1px solid #b0d8cc;
+  border-radius: 5px;
+  padding: 7px 9px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.78rem;
+  resize: vertical;
+  outline: none;
+  color: #1f5a42;
+  line-height: 1.55;
+  transition: border-color 0.15s;
+}
+.caja-textarea:focus { border-color: #2d8b72; box-shadow: 0 0 0 2px rgba(44,123,229,0.1); }
+.caja-textarea::placeholder { color: #b0bdc8; font-style: italic; font-size: 0.74rem; }
+
+/* DB SELECTOR */
+.caja-db-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.btn-db {
+  padding: 3px 9px;
+  border: 1.5px solid transparent;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  transition: filter 0.12s, border-color 0.12s;
+}
+.btn-db.scopus   { background: #3a6fa8; }
+.btn-db.pubmed   { background: #3d8b5c; }
+.btn-db.wos      { background: #6a5aab; }
+.btn-db.cinahl   { background: #b5580a; }
+.btn-db.cochrane { background: #1f6b56; }
+.btn-db.embase   { background: #8b1a4a; }
+.btn-db.proquest { background: #4a6080; }
+.btn-db.activo { border-color: #1f5a42; box-shadow: 0 0 0 1px #1f5a42; }
+.btn-db:hover  { filter: brightness(1.12); }
+
+/* DB SELECT */
+.db-select-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a9e85;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.db-select-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.db-select-wrap select {
+  appearance: none;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 22px 4px 8px;
+  border: 1.5px solid #b0d8cc;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f5a42;
+  cursor: pointer;
+  outline: none;
+}
+.db-select-wrap select:focus { border-color: #2d8b72; }
+.db-select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: #4a9e85;
+  pointer-events: none;
+}
+
+.campos-wrap { display: none; gap: 3px; flex-wrap: wrap; margin-left: 4px; }
+.campos-wrap.visible { display: flex; }
+.btn-campo {
+  padding: 2px 7px;
+  border: 1px solid #b0d8cc;
+  border-radius: 3px;
+  font-size: 0.67rem;
+  cursor: pointer;
+  background: #f4f6f8;
+  color: #2d8b72;
+  transition: background 0.12s;
+}
+.btn-campo.activo { background: #1a3347; color: #fff; border-color: #1a3347; }
+.btn-campo:hover:not(.activo) { background: #e2e8f0; }
+
+/* ACCIONES CAJA */
+.caja-footer {
+  padding: 8px 12px;
+  border-top: 1px solid #f0f8f5;
+  display: flex;
+  gap: 6px;
+}
+.btn-caja {
+  flex: 1;
+  padding: 5px;
+  border: none;
+  border-radius: 4px;
+  background: #e8edf2;
+  color: #2d8b72;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.btn-caja:hover { background: #c0e0d4; }
+
+/* ============================================================
+   BUSCADOR MESH
+   ============================================================ */
+.campo-hint {
+  display: none;
+  font-size: 0.72rem;
+  color: #2d8b72;
+  background: #f0faf9;
+  border: 1px solid #b2e4e2;
+  border-radius: 4px;
+  padding: 5px 9px;
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.campo-hint code {
+  background: #d5f5f2;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  color: #0d4f42;
+}
+
+.mesh-section {
+  padding: 6px 12px 8px;
+  border-top: 1px solid #f0f8f5;
+}
+.mesh-simple-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mesh-simple-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2d8b72;
+  white-space: nowrap;
+}
+.mesh-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #eaf4f0;
+  border: 1px solid #a8d5c5;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2d8b72;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.mesh-toggle-btn:hover { background: #d2ede5; }
+
+.mesh-panel {
+  display: none;
+  margin-top: 8px;
+}
+.mesh-panel.open { display: block; }
+
+.mesh-search-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.mesh-input {
+  flex: 1;
+  border: 1px solid #b0d8cc;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  outline: none;
+  min-width: 0;
+}
+.mesh-input:focus { border-color: #2d8b72; }
+.btn-mesh-go {
+  background: #2d8b72;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.13s;
+}
+.btn-mesh-go:hover { background: #134536; }
+.btn-mesh-go:disabled { background: #9ab5ad; cursor: default; }
+
+.mesh-status {
+  font-size: 0.72rem;
+  color: #5a7a6e;
+  margin-bottom: 6px;
+  min-height: 14px;
+}
+.mesh-status.err { color: #9b2335; }
+.mesh-status.ok  { color: #166534; }
+
+.mesh-results { display: flex; flex-direction: column; gap: 7px; max-height: 260px; overflow-y: auto; }
+
+.mesh-item {
+  background: #f6fffe;
+  border: 1px solid #b8e2da;
+  border-radius: 5px;
+  padding: 7px 9px;
+}
+.mesh-item-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+.mesh-descriptor-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0d3d2e;
+  flex: 1;
+}
+.mesh-ui {
+  font-size: 0.64rem;
+  color: #7aaea4;
+  font-weight: 400;
+}
+.btn-add-desc {
+  background: #2d8b72;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.btn-add-desc:hover { background: #134536; }
+
+.mesh-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.mesh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #e0f5ef;
+  border: 1px solid #9dd4c4;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.68rem;
+  color: #1a4a3a;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.mesh-chip:hover { background: #c5eae0; }
+.mesh-chip.added { background: #bbf7d0; border-color: #6ee7b7; color: #14532d; }
+.mesh-chip .plus { font-weight: 700; opacity: 0.6; }
+
+.mesh-tipo-badge {
+  display: inline-block;
+  background: #2d8b72;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  margin-left: 4px;
+  text-transform: uppercase;
+}
+.mesh-et-label {
+  font-size: 0.67rem;
+  color: #5a7a6e;
+  font-style: italic;
+  margin: 4px 0 3px;
+}
+
+.mesh-browser-link {
+  font-size: 0.65rem;
+  color: #1f6b56;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 6px;
+  white-space: nowrap;
+  border-bottom: 1px dashed #1f6b56;
+}
+.mesh-browser-link:hover { color: #0e4d73; border-bottom-style: solid; }
+.mesh-chip-seealso {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1f6b56;
+}
+.mesh-chip-seealso:hover { background: #e6f4ef; }
+.mesh-chip .chip-tag {
+  font-size: 0.6rem;
+  color: #3d8b5c;
+  font-weight: 700;
+  opacity: 0.85;
+}
+.mesh-chip.mesh-chip-seealso {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1f6b56;
+}
+.mesh-chip.mesh-chip-seealso:hover { background: #e6f4ef; }
+.mesh-chip.mesh-chip-seealso .chip-tag { color: #1f6b56; }
+.mesh-ver-mas {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1f6b56;
+  text-decoration: none;
+  padding: 6px 10px;
+  background: #f0f7ff;
+  border: 1px solid #c5ddf5;
+  border-radius: 4px;
+  text-align: center;
+  transition: background 0.13s;
+}
+.mesh-ver-mas:hover { background: #daeeff; }
+.mesh-nota {
+  font-size: 0.67rem;
+  color: #8aa89e;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* ============================================================
+   BOTONES GLOBALES
+   ============================================================ */
+.global-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.btn-g {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.14s, transform 0.1s;
+}
+.btn-g:hover  { filter: brightness(1.1); }
+.btn-g:active { transform: scale(0.97); }
+.btn-g.add    { background: #2d6a50; }
+.btn-g.addex  { background: #3d6080; }
+.btn-g.gen    { background: #7a2828; }
+.btn-g.gensc  { background: #883030; }
+.btn-g.clear  { background: #9b2335; }
+
+/* ============================================================
+   RESULTADO
+   ============================================================ */
+.resultado-section {
+  background: #fff;
+  border: 1px solid #c0e0d4;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.resultado-head {
+  background: #f0f8f5;
+  border-bottom: 1px solid #c0e0d4;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.resultado-head h3 { font-size: 0.85rem; font-weight: 700; color: #1f5a42; flex: 1; }
+
+.resultado-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.res-block label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a9e85;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.res-input {
+  width: 100%;
+  border: 1px solid #b0d8cc;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #1f5a42;
+  background: #f8fafc;
+  outline: none;
+}
+textarea.res-input {
+  min-height: 64px;
+  resize: vertical;
+  line-height: 1.55;
+}
+.res-input:focus { border-color: #2d8b72; background: #fff; }
+
+.resultado-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #f0f8f5;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-res {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.13s;
+}
+.gen-db-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 5px;
+  padding: 4px 10px 4px 8px;
+}
+.gen-db-label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap;
+  font-weight: 600;
+}
+.gen-db-select {
+  appearance: none;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+}
+.gen-db-select option { background: #1f5a42; color: #fff; }
+
+.btn-res:hover { filter: brightness(1.1); }
+.btn-res.copiar   { background: #2d6a50; color: #fff; }
+.btn-res.creditos { background: #e8edf2; color: #2d8b72; }
+
+/* ============================================================
+   VALIDACIÓN
+   ============================================================ */
+.val-msg {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  display: none;
+  margin-bottom: 10px;
+}
+.res-resumen-visual {
+  border: 1px solid #b0d8cc;
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+.res-placeholder { color: #b0bdc8; font-style: italic; }
+.res-faceta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  flex-wrap: wrap;
+}
+.res-faceta-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #2d6a50;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.res-faceta-label.excl { color: #9b2335; }
+.res-faceta-val {
+  font-family: 'Consolas','Courier New',monospace;
+  font-size: 0.76rem;
+  color: #1f5a42;
+  word-break: break-all;
+}
+.res-or-sep {
+  font-weight: 700;
+  color: #166534;
+  font-family: sans-serif;
+  font-size: 0.7rem;
+}
+.res-and-sep {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #1f6b56;
+  letter-spacing: 0.08em;
+  padding: 2px 0 2px 0;
+}
+.res-and-sep.not { color: #9b2335; }
+.res-operador.and { color: #1f6b56; }
+.res-operador.not { color: #991b1b; }
+
+.val-msg.show { display: block; animation: fadeIn 0.2s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: #1f5a42;
+  color: #fff;
+  padding: 9px 20px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.22s ease;
+  z-index: 999;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+#modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+#modal-overlay.show { display: flex; }
+#modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 460px;
+  width: 90%;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+#modal h3 { font-size: 0.95rem; margin-bottom: 10px; color: #1f5a42; }
+#modal p  { margin-bottom: 8px; color: #2d8b72; }
+#modal .btn-cerrar {
+  margin-top: 12px;
+  padding: 7px 18px;
+  background: #2d6a50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* ============================================================
+   PSYCINFO TESAURO
+   ============================================================ */
+.psyc-tesauro {
+  display: none;
+  margin-top: 8px;
+  border: 1px solid #b0d8cc;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f0f8f5;
+}
+.psyc-tesauro-header {
+  background: #2d8b72;
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 5px 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.psyc-tesauro-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
+.psyc-term-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #c8e8de;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.psyc-term-text { flex: 1; color: #222; font-family: 'Courier New', monospace; font-size: 12px; }
+.psyc-term-opts { display: flex; gap: 6px; flex-shrink: 0; }
+.psyc-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #555;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  transition: all 0.15s;
+}
+.psyc-radio-label:has(input:checked) {
+  background: #2d8b72;
+  color: #fff;
+  border-color: #2d8b72;
+}
+.psyc-radio-label input { display: none; }
+.psyc-empty { font-size: 12px; color: #999; font-style: italic; padding: 4px 0; }
+
+/* ============================================================
+   TRADUCTOR
+   ============================================================ */
+.traductor-section {
+  background: #fff;
+  border: 1px solid #c0e0d4;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.trad-inner { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.trad-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.trad-col { flex: 1; min-width: 160px; }
+.trad-col-full { width: 100%; }
+.trad-arrow {
+  font-size: 1.4rem;
+  color: #4a9e85;
+  padding-bottom: 4px;
+  flex-shrink: 0;
+}
+.trad-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a9e85;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.select-wrap-trad { position: relative; }
+.select-wrap-trad select {
+  width: 100%;
+  appearance: none;
+  border: 1px solid #b0d8cc;
+  border-radius: 4px;
+  padding: 7px 28px 7px 10px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: #1f5a42;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+}
+.select-wrap-trad select:focus { border-color: #2d8b72; }
+.select-wrap-trad::after {
+  content: '▾';
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #4a9e85;
+  font-size: 0.7rem;
+}
+.trad-actions-row { display: flex; gap: 8px; }
+.btn-trad-usar {
+  background: #f0f8f5;
+  border: 1px solid #b0d8cc;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #2d8b72;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.btn-trad-usar:hover { background: #e2e8f0; }
+.trad-notas {
+  font-size: 0.74rem;
+  color: #78350f;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  line-height: 1.5;
+  display: none;
+}
+.trad-notas.show { display: block; }
+.trad-notas ul { padding-left: 16px; margin-top: 4px; }
+.trad-notas li { margin-bottom: 3px; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 580px) {
+  .main-body { padding: 12px 14px 0; }
+  .app-header { padding: 14px 14px 12px; }
+  .ayuda-bar  { padding: 0 14px; }
+  #cajas-wrap { grid-template-columns: 1fr; }
+  .btn-esquema { padding: 6px 10px; font-size: 0.73rem; }
+  .btn-g { padding: 8px 12px; font-size: 0.75rem; }
+}
+</style>
+</head>
+<body>
+<div class="app-wrap">
+
+<!-- HEADER -->
+<div class="app-header">
+  <h1>🔍 Constructor de Estrategias de Búsqueda Bibliográfica</h1>
+  <p>Genera ecuaciones booleanas con sintaxis adaptada a cada base de datos · Esquemas metodológicos (PICO, SPiDER, ECLIPSe…) · Búsqueda MeSH en tiempo real (NLM)</p>
+</div>
+
+<!-- AYUDA DIDÁCTICA -->
+<div class="ayuda-bar">
+  <button class="ayuda-toggle" id="ayuda-btn" onclick="toggleAyuda()">
+    <span class="ico">📖</span> Instrucciones de uso
+    <span class="chevron">▾</span>
+  </button>
+  <div class="ayuda-panel" id="ayuda-panel">
+    <div class="ayuda-grid">
+      <div class="ayuda-card">
+        <h4><span class="op-tag or">OR</span> Dentro de cada caja</h4>
+        <p>Escribe <strong>sinónimos y variantes</strong> del mismo concepto, uno por línea. Se unirán con OR: recupera documentos que contengan <em>cualquiera</em> de los términos.</p>
+      </div>
+      <div class="ayuda-card">
+        <h4><span class="op-tag and">AND</span> Entre cajas</h4>
+        <p>Las cajas distintas se unen con AND: el documento debe contener <strong>al menos un término de cada caja</strong>. Restringe la búsqueda combinando conceptos.</p>
+      </div>
+      <div class="ayuda-card">
+        <h4><span class="op-tag not">NOT</span> Caja de exclusión</h4>
+        <p>Los términos de una <strong>caja de exclusión</strong> se unen con AND NOT: excluye documentos que contengan esos términos. Úsala con precaución — puedes perder artículos relevantes.</p>
+      </div>
+      <div class="ayuda-card">
+        <h4>🗂️ Marco metodológico</h4>
+        <p>Selecciona un esquema (PICO, SPiDER, ECLIPSe…) para que el generador cree automáticamente las cajas con los componentes del marco. Cada caja lleva el nombre del componente.</p>
+      </div>
+      <div class="ayuda-card">
+        <h4>🗄️ Base de datos y campo</h4>
+        <p>Cada caja tiene su propio selector de base de datos y campo. Puedes mezclar bases de datos en distintas cajas. El campo determina dónde se busca: <em>Todos</em>, <em>Título/Resumen</em>, <em>MeSH</em>…</p>
+      </div>
+      <div class="ayuda-card">
+        <h4>🔬 Buscador MeSH</h4>
+        <p>Disponible en PubMed y Ovid MEDLINE. Introduce un término y pulsa <strong>Abrir en NLM MeSH</strong> para consultar el descriptor oficial, sus sinónimos (entry terms) y subencabezamientos en el tesauro de la NLM.</p>
+      </div>
+      <div class="ayuda-card">
+        <h4>✂️ Truncamiento y frases</h4>
+        <p>Las <strong>frases de más de una palabra</strong> se entrecomillan automáticamente al generar. El truncamiento (<strong>*</strong>) lo añades tú: <em>nurs*</em> → nurse, nurses, nursing… El comodín (<strong>?</strong>) sustituye un solo carácter: <em>wom?n</em> → woman, women.</p>
+      </div>
+      <div class="ayuda-card">
+        <h4>🧪 Tesauro PsycINFO</h4>
+        <p>Al seleccionar PsycINFO con campo <em>Materias</em> o <em>Materia principal</em>, aparece un selector por término: <strong>Exacto</strong> (solo ese descriptor) o <strong>Con explosión</strong> (incluye términos más específicos del tesauro APA).</p>
+      </div>
+    </div>
+    <div class="ayuda-pasos">
+      <strong>Pasos recomendados:</strong>
+      <div class="paso"><div class="paso-num">1</div> Elige un marco metodológico (PICO, SPiDER…) o trabaja sin esquema</div>
+      <div class="paso"><div class="paso-num">2</div> En cada caja, selecciona la base de datos y el campo de búsqueda</div>
+      <div class="paso"><div class="paso-num">3</div> Introduce los términos y sinónimos, uno por línea. Usa * para truncar</div>
+      <div class="paso"><div class="paso-num">4</div> Si usas PubMed u Ovid, consulta el MeSH para obtener descriptores controlados</div>
+      <div class="paso"><div class="paso-num">5</div> Pulsa <strong>Generar búsqueda</strong> y copia la ecuación resultante</div>
+      <div class="paso"><div class="paso-num">6</div> Pega la ecuación directamente en el buscador avanzado de la base de datos</div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#f0f8f5;border-left:3px solid #2d8b72;border-radius:0 4px 4px 0;font-size:12px;color:#444;line-height:1.6;">
+      <strong>💡 Consejo:</strong> Para revisiones sistemáticas, combina siempre <strong>términos de texto libre</strong> (Título/Resumen) con <strong>términos controlados</strong> (MeSH, Emtree, tesauro APA) para maximizar la sensibilidad de la búsqueda.
+    </div>
+  </div>
+</div>
+
+<!-- CUERPO PRINCIPAL -->
+<div class="main-body">
+
+  <!-- ESQUEMAS -->
+  <div class="esquemas-section">
+    <div class="esquemas-label">Marco metodológico</div>
+    <div class="esquemas-row">
+      <button class="btn-esquema activo" onclick="cargarEsquema('libre',this)">Sin esquema</button>
+      <button class="btn-esquema" onclick="cargarEsquema('pico',this)">PICO</button>
+      <button class="btn-esquema" onclick="cargarEsquema('picot',this)">PICOT</button>
+      <button class="btn-esquema" onclick="cargarEsquema('peo',this)">PEO</button>
+      <button class="btn-esquema" onclick="cargarEsquema('pcc',this)">PCC</button>
+      <button class="btn-esquema" onclick="cargarEsquema('pico_qual',this)">PICo</button>
+      <button class="btn-esquema" onclick="cargarEsquema('cocopop',this)">CoCoPop</button>
+      <button class="btn-esquema" onclick="cargarEsquema('pird',this)">PIRD</button>
+      <button class="btn-esquema" onclick="cargarEsquema('spider',this)">SPiDER</button>
+      <button class="btn-esquema" onclick="cargarEsquema('spice',this)">SPICE</button>
+      <button class="btn-esquema" onclick="cargarEsquema('behemoth',this)">BeHEMoTh</button>
+      <button class="btn-esquema" onclick="cargarEsquema('eclipse',this)">ECLIPSe</button>
+      <button class="btn-esquema" onclick="cargarEsquema('perspectif',this)">PerSPEcTiF</button>
+    </div>
+  </div>
+
+  <!-- VALIDACIÓN -->
+  <div class="val-msg" id="val-msg"></div>
+
+  <!-- CAJAS -->
+  <div id="cajas-wrap"></div>
+
+  <!-- ACCIONES GLOBALES -->
+  <div class="global-actions">
+    <button class="btn-g add"   onclick="agregarCaja(false)">＋ Agregar caja</button>
+    <button class="btn-g addex" onclick="agregarCaja(true)">＋ Agregar caja de exclusiones</button>
+    <div class="gen-db-wrap">
+      <label class="gen-db-label">Base de datos:</label>
+      <select id="gen-db-sel" class="gen-db-select">
+        <option value="pubmed">PubMed / MEDLINE</option>
+        <option value="scopus">Scopus</option>
+        <option value="wos">Web of Science</option>
+        <option value="cochrane">Cochrane Library</option>
+      </select>
+      <button class="btn-g gen" onclick="generarBusqueda()">▶ Generar ecuación</button>
+    </div>
+    <button class="btn-g clear" onclick="borrarTodo()">✕ Borrar todo</button>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="resultado-section">
+    <div class="resultado-head">
+      <h3>📋 Ecuación de búsqueda generada</h3>
+    </div>
+    <div class="resultado-body">
+      <div class="res-block">
+        <label>Resumen de la estrategia</label>
+        <div id="res-resumen" class="res-resumen-visual">
+          <span class="res-placeholder">Aquí aparecerá el resumen de los bloques…</span>
+        </div>
+      </div>
+      <div class="res-block">
+        <label>Cadena de búsqueda final</label>
+        <textarea id="res-cadena" class="res-input" rows="3" placeholder="Aquí aparecerá la ecuación booleana completa…" readonly></textarea>
+      </div>
+    </div>
+    <div class="resultado-footer">
+      <button class="btn-res copiar"   onclick="copiarQuery()">⎘ Copiar ecuación</button>
+      <button class="btn-res creditos" onclick="mostrarCreditos()">Créditos / Licencia</button>
+    </div>
+  </div>
+
+
+</div><!-- /main-body -->
+</div><!-- /app-wrap -->
+
+<!-- TOAST -->
+<div id="toast">✓ Ecuación copiada al portapapeles</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="cerrarModal(event)">
+  <div id="modal">
+    <h3>Créditos y licencia</h3>
+    <p>Constructor de estrategias de búsqueda bibliográfica por base de datos, desarrollado para uso docente e investigador en la <strong>Biblioteca de Ciencias de la Salud de la Universidad de Oviedo</strong>.</p>
+    <p>Búsqueda MeSH en tiempo real: <strong>NCBI E-utilities API</strong> (National Library of Medicine, NIH). Los descriptores MeSH son propiedad de la NLM.</p>
+    <p>Inspirado en el <a href="https://libraryhome.witt.ac.nz/databasesearching/searchtool" target="_blank">Search Query Generator</a> del Western Institute of Technology at Taranaki y en el <a href="https://www2.unavarra.es/gesadj/servicioBiblioteca/guias_tematicas/generador-busquedas_simple.html" target="_blank">Generador BUPNA</a> de la Biblioteca de la Universidad Pública de Navarra (licencia MIT).</p>
+    <p>Marcos metodológicos adaptados de <a href="https://libguides.ucd.ie/systematic/frameworks" target="_blank">UCD Library — Systematic Review: Frameworks</a> (CC BY-NC-SA 4.0) y de Munn Z et al. <em>BMC Med Res Methodol.</em> 2018;18(1):5.</p>
+    <p style="color:#888;font-size:0.76rem">Esta herramienta genera ecuaciones de búsqueda pero no realiza búsquedas en bases de datos externas.</p>
+    <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:3px;padding:10px;font-family:monospace;font-size:11px;color:#444;max-height:140px;overflow-y:auto;line-height:1.5;margin-top:8px">
+      <strong>Licencia MIT</strong><br><br>
+      Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+    </div>
+    <button class="btn-cerrar" onclick="document.getElementById('modal-overlay').classList.remove('show')">Cerrar</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ESQUEMAS
+   ============================================================ */
+const ESQUEMAS = {
+  libre: [],
+  pico: [
+    { n:'P — Población/Problema',    p:'Características del paciente o problema clínico. Ej: adults with hypertension' },
+    { n:'I — Intervención',          p:'Tratamiento, exposición o intervención. Ej: aerobic exercise, yoga' },
+    { n:'C — Comparación',           p:'Comparación o alternativa (opcional). Ej: standard pharmacological treatment' },
+    { n:'O — Outcome/Resultado',     p:'Variable de resultado. Ej: blood pressure, cardiovascular events' },
+  ],
+  picot: [
+    { n:'P — Población/Problema',    p:'Características del paciente o problema clínico. Ej: adults with hypertension' },
+    { n:'I — Intervención',          p:'Tratamiento, exposición o intervención. Ej: aerobic exercise, yoga' },
+    { n:'C — Comparación',           p:'Comparación o alternativa (opcional). Ej: standard pharmacological treatment' },
+    { n:'O — Outcome/Resultado',     p:'Variable de resultado. Ej: blood pressure, cardiovascular events' },
+    { n:'T — Time/Tiempo',           p:'Periodo de tiempo para la recogida de datos. Ej: 6 months, 1 year' },
+  ],
+  peo: [
+    { n:'P — Población',             p:'Grupo de estudio. Ej: adolescent females, older adults' },
+    { n:'E — Exposure/Exposición',   p:'A qué está expuesta la población. Ej: soy supplements, baby aspirin' },
+    { n:'O — Outcome/Resultado',     p:'Resultado de la exposición. Ej: food allergies, lowered risk for heart attacks' },
+  ],
+  pico_qual: [
+    { n:'P — Población',             p:'Grupo de estudio con sus características principales. Ej: adult patients, nurses' },
+    { n:'I — Fenómeno de interés',   p:'Fenómeno, experiencia o práctica que se investiga. Ej: lived experience of chronic pain' },
+    { n:'Co — Contexto',             p:'Contexto cultural, geográfico o social del estudio. Ej: high-income countries, primary care' },
+  ],
+  cocopop: [
+    { n:'Co — Condición',            p:'Condición o problema de salud de interés. Ej: claustrophobia, malnutrition' },
+    { n:'Co — Contexto',             p:'Contexto donde se mide la prevalencia. Ej: MRI patients, hospital settings' },
+    { n:'Pop — Población',           p:'Población en la que se estima la prevalencia. Ej: adult patients, elderly' },
+  ],
+  pird: [
+    { n:'P — Población',             p:'Población en la que se evalúa la prueba. Ej: patients with suspected colorectal cancer' },
+    { n:'I — Prueba índice',         p:'Prueba diagnóstica que se evalúa. Ej: Malnutrition Screening Tool, MRI' },
+    { n:'R — Prueba de referencia',  p:'Prueba de referencia (gold standard) con la que se compara. Ej: Patient-Generated Subjective Global Assessment' },
+    { n:'D — Diagnóstico de interés',p:'Diagnóstico o condición que se quiere detectar. Ej: malnutrition, colorectal cancer' },
+  ],
+  pcc: [
+    { n:'P — Population/Población',  p:'Características importantes de los participantes, edad y criterios de inclusión.' },
+    { n:'C — Concept/Concepto',      p:'Intervenciones, programas y resultados evaluados.' },
+    { n:'C — Context/Contexto',      p:'Contexto: localización, marco temporal, entorno, etc.' },
+  ],
+  spider: [
+    { n:'S — Sample/Muestra',                   p:'Muestra o grupo de participantes. Ej: nurses, cancer patients' },
+    { n:'Pi — Phenomenon of Interest/Fenómeno', p:'Fenómeno, experiencia o comportamiento de interés.' },
+    { n:'D — Design/Diseño',                    p:'Diseño del estudio: cualitativo, mixto, etnográfico…' },
+    { n:'E — Evaluation/Evaluación',            p:'Resultados o evaluación del fenómeno estudiado.' },
+    { n:'R — Research type/Tipo investigación', p:'Tipo de investigación: cualitativa, cuantitativa o mixta.' },
+  ],
+  spice: [
+    { n:'S — Setting/Contexto',          p:'Contexto o entorno del estudio. Ej: primary care, hospital' },
+    { n:'P — Perspective/Perspectiva',   p:'Perspectiva de los participantes o usuarios. Ej: patients, nurses' },
+    { n:'I — Intervention/Intervención', p:'Intervención o fenómeno de interés.' },
+    { n:'C — Comparison/Comparación',    p:'Comparación con otra intervención, si la hay.' },
+    { n:'E — Evaluation/Evaluación',     p:'Resultados o evaluación de la intervención.' },
+  ],
+  behemoth: [
+    { n:'Be — Behaviour/Comportamiento', p:'Comportamiento de interés para la revisión.' },
+    { n:'H — Health context/Contexto',   p:'Contexto de salud o condición clínica relacionada.' },
+    { n:'E — Exclusions/Exclusiones',    p:'Exclusiones explícitas del comportamiento o contexto.' },
+    { n:'Mo — Models/Modelos',           p:'Modelos teóricos o mecanismos que explican el comportamiento.' },
+    { n:'Th — Theories/Teorías',         p:'Teorías relacionadas con el comportamiento de interés.' },
+  ],
+  eclipse: [
+    { n:'E — Expectation/Expectativas',    p:'Expectativas o necesidades de usuarios o beneficiarios.' },
+    { n:'C — Client group/Grupo cliente',  p:'Grupo de usuarios o clientes del servicio.' },
+    { n:'L — Location/Localización',       p:'Lugar o contexto donde se presta el servicio.' },
+    { n:'I — Impact/Impacto',              p:'Impacto o resultados esperados del servicio.' },
+    { n:'P — Professionals/Profesionales', p:'Profesionales que prestan o reciben el servicio.' },
+    { n:'Se — Service/Servicio',           p:'Servicio o intervención que se evalúa.' },
+  ],
+  perspectif: [
+    { n:'Pe — Perspective/Perspectiva',    p:'Perspectiva del grupo de interés. Ej: patients, carers' },
+    { n:'R — Research type/Investigación', p:'Tipo de investigación: cualitativa, cuantitativa o mixta.' },
+    { n:'S — Setting/Contexto',            p:'Contexto o entorno del estudio.' },
+    { n:'Pe — Phenomenon/Fenómeno',        p:'Fenómeno, experiencia o práctica de interés.' },
+    { n:'E — Evaluation/Evaluación',       p:'Cómo se evalúa o mide el fenómeno.' },
+    { n:'C — Comparison/Comparación',      p:'Comparación con otro grupo o intervención (si existe).' },
+    { n:'Ti — Time/Tiempo',                p:'Marco temporal del estudio.' },
+    { n:'F — Findings/Hallazgos',          p:'Tipo de hallazgos o resultados esperados.' },
+  ],
+};
+
+/* ============================================================
+   CAMPOS POR BASE DE DATOS
+   ============================================================ */
+const CAMPOS_DB = {
+  pubmed:   ['All','Mesh','Major','TiAb','Ti'],
+  scopus:   ['All','TiAbKw','Ti'],
+  wos:      ['All','Topic','Abstract','Ti','KeywordPlus'],
+  ovid:     ['All','MeSH','TiAb','Ti'],
+  cochrane: ['All','TiAbKw','Ti','Ab','MeSH'],
+  buofind:  ['All','TI','SU','AB'],
+  psycinfo: ['All','TIAB','Ti','AB','SUBJECT','MAINSUB','MJSUB'],
+};
+const SUF_PUBMED  = { All:'', Mesh:'[Mesh]', Major:'[Majr]', TiAb:'[tiab]', Ti:'[ti]' };
+const PREF_SCOPUS = { All:'ALL', TiAbKw:'TITLE-ABS-KEY', Ti:'TITLE', Ab:'ABS', Kw:'KEY' };
+
+// Sintaxis de campo por base de datos
+const SINTAXIS = {
+  pubmed:   { All:'', Mesh:'[Mesh]', Major:'[Majr]', TiAb:'[tiab]', Ti:'[ti]' },
+  scopus:   { All:'', TiAb:'TITLE-ABS', Ti:'TITLE' },  // prefijo, no sufijo
+  wos:      { All:'TS', TiAb:'TS', Ti:'TI' },           // campo= antes del paréntesis
+  cochrane: { All:'', MeSH:'[MeSH]', TiAb:'[tiab]', Ti:'[ti]' },
+};
+
+// Nombre para mostrar
+const DB_NOMBRE = {
+  pubmed:   'PubMed',
+  scopus:   'Scopus',
+  wos:      'Web of Science',
+  ovid:     'Ovid MEDLINE',
+  cochrane: 'Cochrane Library',
+  buofind:  'BUOFind (UniOvi)',
+  psycinfo: 'PsycINFO (ProQuest)',
+};
+
+// Sintaxis por base de datos: cómo formatear cada término según campo
+const DB_FORMAT = {
+  pubmed:   { All: t=>t,              Mesh:  t=>`${t}[Mesh]`,  Major: t=>`${t}[Majr]`,   TiAb: t=>`${t}[tiab]`,       Ti: t=>`${t}[ti]`  },
+  scopus:   { All: t=>t, TiAbKw: t=>`TITLE-ABS-KEY(${t})`, Ti: t=>`TITLE(${t})`, Ab: t=>`ABS(${t})`, Kw: t=>`KEY(${t})` },
+  wos:      { All: t=>t, Topic: t=>t, Abstract: t=>t, Ti: t=>t, KeywordPlus: t=>t },
+  ovid:     { All: t=>t, MeSH: t=>`exp ${t.replace(/^"|"$/g,'')}/`, TiAb: t=>`${t}.ti,ab.`, Ti: t=>`${t}.ti.` },
+  cochrane: { All: t=>t, TiAbKw: t=>`${t}:ti,ab,kw`, Ti: t=>`${t}:ti`, Ab: t=>`${t}:ab`, MeSH: t=>`[mh "${t.replace(/^"|"$/g,'')}"]` },
+  buofind:  { All: t=>t, TI: t=>`TI ${t}`, SU: t=>`SU ${t}`, AB: t=>`AB ${t}` },
+  psycinfo: { All: t=>t, TIAB: t=>`TIAB(${t})`, Ti: t=>`TITLE(${t})`, AB: t=>`ABSTRACT(${t})`, SUBJECT: t=>`SUBJECT(${t})`, MAINSUB: t=>`MAINSUBJECT(${t})`, MJSUB: t=>`MJSUB(${t})` },
+};
+
+let contador = 0;
+let esquema  = 'libre';
+
+/* ============================================================
+   AYUDA
+   ============================================================ */
+function toggleAyuda() {
+  const btn   = document.getElementById('ayuda-btn');
+  const panel = document.getElementById('ayuda-panel');
+  btn.classList.toggle('open');
+  panel.classList.toggle('open');
+}
+
+/* ============================================================
+   ESQUEMA
+   ============================================================ */
+function cargarEsquema(nombre, btn) {
+  const hayTexto = Array.from(document.querySelectorAll('.caja-textarea'))
+                        .some(ta => ta.value.trim().length > 0);
+  if (hayTexto && nombre !== esquema &&
+      !confirm('Cambiar de esquema eliminará el contenido actual. ¿Continuar?')) return;
+
+  esquema = nombre;
+  document.querySelectorAll('.btn-esquema').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
+  document.getElementById('cajas-wrap').innerHTML = '';
+  contador = 0;
+  limpiarRes();
+
+  const defs = ESQUEMAS[nombre];
+  if (defs && defs.length) {
+    defs.forEach(d => agregarCaja(false, d.n, d.p));
+  } else {
+    agregarCaja(false,'','');
+    agregarCaja(false,'','');
+  }
+}
+
+/* ============================================================
+   AGREGAR CAJA
+   ============================================================ */
+function agregarCaja(esExcl=false, nombre='', placeholder='') {
+  contador++;
+  const id  = contador;
+  const nom = nombre || (esExcl ? 'Términos de exclusión' : `Concepto ${id}`);
+  const ph  = placeholder || (esExcl
+    ? 'Términos a EXCLUIR, uno por línea. Se combinarán con AND NOT.'
+    : 'Términos y sinónimos, uno por línea.\nEl campo seleccionado se aplica al generar la ecuación.');
+
+  const div = document.createElement('div');
+  div.className = 'caja' + (esExcl ? ' exclusion' : '');
+  div.id = `caja_${id}`;
+  div.dataset.excl  = esExcl ? '1' : '0';
+  div.dataset.db    = 'pubmed';
+  div.dataset.campo = 'All';
+
+  div.innerHTML = `
+    <div class="caja-head">
+      <div class="caja-num">${id}</div>
+      <input type="text" class="caja-nombre" value="${esc(nom)}" placeholder="Nombre del concepto">
+      <button class="caja-del" onclick="eliminarCaja(${id})" title="Eliminar caja">✕</button>
+    </div>
+    <div class="caja-body">
+      <textarea class="caja-textarea" placeholder="${esc(ph)}"></textarea>
+      <div class="caja-db-row">
+        <label class="db-select-label">Base de datos:</label>
+        <div class="db-select-wrap">
+          <select id="dbsel_${id}" onchange="selDbFromSelect(${id}, this)">
+            <option value="pubmed"   selected>PubMed / MEDLINE</option>
+            <option value="scopus">Scopus</option>
+            <option value="wos">Web of Science</option>
+            <option value="ovid">Ovid MEDLINE</option>
+            <option value="cochrane">Cochrane Library</option>
+            <option value="buofind">BUOFind (UniOvi)</option>
+            <option value="psycinfo">PsycINFO (ProQuest)</option>
+          </select>
+        </div>
+        <label class="db-select-label" style="margin-left:8px">Campo:</label>
+        <div class="campos-wrap visible" id="cmp_${id}">${mkCampos(id,'pubmed')}</div>
+      </div>
+      <div class="campo-hint" id="campo-hint_${id}"></div>
+      <div class="psyc-tesauro" id="psyc-tes_${id}">
+        <div class="psyc-tesauro-header">Tesauro PsycINFO — elige Exacto o Con explosión por término</div>
+        <div class="psyc-tesauro-body" id="psyc-body_${id}">
+          <span class="psyc-empty">Introduce términos en la caja para configurar el tesauro.</span>
+        </div>
+      </div>
+    </div>
+    <div class="mesh-section" id="mesh-sec_${id}" style="display:none">
+      <div class="mesh-simple-row">
+        <span class="mesh-simple-label">🔬 MeSH:</span>
+        <input type="text" class="mesh-input" id="minput_${id}"
+               placeholder="Término en inglés…"
+               onkeydown="if(event.key==='Enter') abrirMesh(${id})">
+        <button class="btn-mesh-go" onclick="abrirMesh(${id})">Abrir en NLM MeSH ↗</button>
+      </div>
+      <div class="mesh-nota">Abre el MeSH Browser de la NLM con tu término. Copia el descriptor oficial, sus entry terms y subencabezamientos.</div>
+    </div>
+    <div class="caja-footer">
+      <button class="btn-caja" onclick="borrarTexto(${id})">Borrar texto</button>
+      <button class="btn-caja" onclick="eliminarCaja(${id})">Eliminar caja</button>
+    </div>
+  `;
+  document.getElementById('cajas-wrap').appendChild(div);
+
+  // Listener para actualizar tesauro PsycINFO cuando cambia el textarea
+  const ta = div.querySelector('.caja-textarea');
+  ta.addEventListener('input', () => actualizarPsycTesauro(id));
+}
+
+const CAMPO_LABEL = {
+  All:        'Todos',
+  Mesh:       'MeSH',
+  Major:      'MeSH principal',
+  TiAb:       'Título/Resumen',
+  Ti:         'Título',
+  Ab:         'Resumen',
+  TiAbKw:     'Título/Resumen/Palabras clave',
+  Topic:      'Topic',
+  KeywordPlus:'Keywords Plus',
+  MeSH:       'MeSH',
+  MH:         'Encabezamiento',
+  Emtree:     'Emtree',
+  TIAB:       'Título/Resumen',
+  MAINSUB:    'Materias (tesauro)',
+  MAINSUB:    'Materias (tesauro)',
+  SUBJECT:    'Materias',
+  MJSUB:      'Materia principal',
+  DeCS:       'DeCS (tesauro)',
+  AB:         'Resumen',
+  Kw:         'Palabras clave',
+};
+
+const CAMPO_TOOLTIP = {
+  pubmed:   { All:'Todos los campos', Mesh:'Términos MeSH — vocabulario controlado de la NLM', Major:'Tema principal MeSH', TiAb:'Título y Resumen', Ti:'Solo Título' },
+  scopus:   { All:'Todos los campos', TiAbKw:'Título, Resumen y Palabras clave', Ti:'Solo Título' },
+  wos:      { All:'Todos los campos', Topic:'Topic: Título, Resumen, Palabras clave y Keywords Plus', Abstract:'Solo Resumen', Ti:'Solo Título', KeywordPlus:'Keywords Plus — palabras clave derivadas por WoS' },
+  ovid:     { All:'Todos los campos', MeSH:'Términos MeSH con explosión', TiAb:'Título y Resumen', Ti:'Solo Título' },
+  cochrane: { All:'Todos los campos', TiAbKw:'Título, Resumen y Palabras clave (campo por defecto)', Ti:'Solo Título', Ab:'Solo Resumen', MeSH:'Descriptor MeSH con explosión — solo para registros de PubMed/MEDLINE' },
+  scholar:  { All:'Todos los campos', Ti:'Solo Título (intitle:)' },
+  buofind:  { All:'Todos los campos', TI:'Solo Título', SU:'Descriptores / Materias', AB:'Solo Resumen' },
+  psycinfo: { All:'Todos los campos', TIAB:'Título y Resumen', Ti:'Solo Título del documento', AB:'Solo Resumen', SUBJECT:'Todas las materias e indexaciones — incluye tesauro APA y palabras clave libres', MAINSUB:'Encabezamientos del tesauro APA — términos controlados principales y secundarios (con Exacto/Explosión)', MJSUB:'Materia principal del tesauro APA — solo artículos donde es el tema central (con Exacto/Explosión)' },
+};
+
+function mkCampos(id, db) {
+  const tooltips = CAMPO_TOOLTIP[db] || {};
+  return (CAMPOS_DB[db]||[]).map((c,i) =>
+    `<button class="btn-campo${i===0?' activo':''}" onclick="selCampo(${id},'${c}',this)" title="${tooltips[c]||c}">${CAMPO_LABEL[c]||c}</button>`
+  ).join('');
+}
+
+/* ============================================================
+   DB / CAMPO
+   ============================================================ */
+function selDbFromSelect(id, sel) {
+  const db   = sel.value;
+  const caja = document.getElementById(`caja_${id}`);
+  caja.dataset.db    = db;
+  caja.dataset.campo = 'All';
+  const wrap = document.getElementById(`cmp_${id}`);
+  wrap.innerHTML = mkCampos(id, db);
+  actualizarVisibilidadMesh(id, db, 'All');
+  mostrarCampoHint(id, db, 'All');
+  mostrarPsycTesauro(id, false);
+}
+
+function selDb(id, db, btn) {
+  const caja = document.getElementById(`caja_${id}`);
+  caja.dataset.db    = db;
+  caja.dataset.campo = 'All';
+  caja.querySelectorAll('.btn-db').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
+  const wrap = document.getElementById(`cmp_${id}`);
+  wrap.innerHTML = mkCampos(id, db);
+  wrap.classList.add('visible');
+  actualizarVisibilidadMesh(id, db, 'All');
+  mostrarCampoHint(id, db, 'All');
+  mostrarPsycTesauro(id, false);
+}
+
+function selCampo(id, campo, btn) {
+  const caja = document.getElementById(`caja_${id}`);
+  const db   = caja.dataset.db || 'pubmed';
+  caja.dataset.campo = campo;
+  caja.querySelectorAll('.btn-campo').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
+  actualizarVisibilidadMesh(id, db, campo);
+  mostrarCampoHint(id, db, campo);
+  mostrarPsycTesauro(id, db === 'psycinfo' && (campo === 'MJSUB' || campo === 'MAINSUB'));
+}
+
+function actualizarVisibilidadMesh(id, db, campo) {
+  const meshSection = document.getElementById(`mesh-sec_${id}`);
+  if (!meshSection) return;
+  const mostrar = db === 'pubmed' && (campo === 'Mesh' || campo === 'Major');
+  meshSection.style.display = mostrar ? '' : 'none';
+  if (!mostrar) {
+    const inp = meshSection.querySelector('.mesh-input');
+    if (inp) inp.value = '';
+  }
+}
+
+const CAMPO_HINTS = {
+  pubmed: {
+    All:   '',
+    Mesh:  '→ Al generar: <code>Heart Failure[Mesh]</code> — busca en el vocabulario controlado MeSH',
+    Major: '→ Al generar: <code>Heart Failure[Majr]</code> — descriptor MeSH como tema principal',
+    TiAb:  '→ Al generar: <code>"heart failure"[tiab]</code> — busca en Título y Resumen',
+    Ti:    '→ Al generar: <code>"heart failure"[ti]</code> — busca solo en el Título',
+  },
+  scopus: {
+    All:    '',
+    TiAbKw: '→ Al generar: <code>TITLE-ABS-KEY("heart failure")</code> — busca en Título, Resumen y Palabras clave',
+    Ti:     '→ Al generar: <code>TITLE("heart failure")</code> — busca solo en el Título',
+    Ab:     '→ Al generar: <code>ABS("heart failure")</code> — busca solo en el Resumen',
+    Kw:     '→ Al generar: <code>KEY("heart failure")</code> — busca solo en las Palabras clave',
+  },
+  wos: {
+    All:        '',
+    Topic:      '→ Al generar: <code>TS="heart failure"</code> — busca en Título, Resumen, Palabras clave y Keywords Plus',
+    Abstract:   '→ Al generar: <code>AB="heart failure"</code> — busca solo en el Resumen',
+    Ti:         '→ Al generar: <code>TI="heart failure"</code> — busca solo en el Título',
+    KeywordPlus:'→ Al generar: <code>KP="heart failure"</code> — busca en Keywords Plus (términos derivados por WoS)',
+  },
+  ovid: {
+    All:  '',
+    MeSH: '→ Al generar: <code>exp heart failure/</code> — término MeSH con explosión en Ovid MEDLINE',
+    TiAb: '→ Al generar: <code>"heart failure".ti,ab.</code> — busca en Título y Resumen',
+    Ti:   '→ Al generar: <code>"heart failure".ti.</code> — busca solo en el Título',
+  },
+  cochrane: {
+    All:    '',
+    TiAbKw: '→ Al generar: <code>"heart failure":ti,ab,kw</code> — busca en Título, Resumen y Palabras clave (campo por defecto)',
+    Ti:     '→ Al generar: <code>"heart failure":ti</code> — busca solo en el Título',
+    Ab:     '→ Al generar: <code>"heart failure":ab</code> — busca solo en el Resumen',
+    MeSH:   '→ Al generar: <code>[mh "Heart Failure"]</code> — descriptor MeSH con explosión. Solo aplica a registros de PubMed/MEDLINE y ClinicalTrials.gov en CENTRAL',
+  },
+  buofind: {
+    All: '',
+    TI:  '→ Al generar: <code>TI "heart failure"</code> — busca en el Título del documento',
+    SU:  '→ Al generar: <code>SU "heart failure"</code> — busca en los Descriptores / Materias',
+    AB:  '→ Al generar: <code>AB "heart failure"</code> — busca en el Resumen',
+  },
+  psycinfo: {
+    All:     '',
+    TIAB:    '→ Al generar: <code>TIAB("heart failure")</code> — busca en Título y Resumen',
+    Ti:      '→ Al generar: <code>TITLE("heart failure")</code> — busca solo en el Título del documento',
+    AB:      '→ Al generar: <code>ABSTRACT("heart failure")</code> — busca solo en el Resumen',
+    MAINSUB: '→ Activa el selector Exacto/Explosión por término. Genera: <code>MAINSUBJECT.EXACT("Depression")</code> o <code>MAINSUBJECT.EXACT.EXPLODE("Depression")</code>',
+    MJSUB:   '→ Activa el selector Exacto/Explosión por término. Genera: <code>MJSUB.EXACT("Depression")</code> o <code>MJSUB.EXACT.EXPLODE("Depression")</code>',
+  },
+};
+
+function mostrarCampoHint(id, db, campo) {
+  const hint = document.getElementById(`campo-hint_${id}`);
+  if (!hint) return;
+  const msg = CAMPO_HINTS[db]?.[campo] || '';
+  hint.innerHTML = msg ? `ℹ️ ${msg}` : '';
+  hint.style.display = msg ? '' : 'none';
+}
+
+/* ============================================================
+   ACCIONES CAJA
+   ============================================================ */
+function eliminarCaja(id) {
+  const el = document.getElementById(`caja_${id}`);
+  if (el) el.remove();
+}
+function borrarTexto(id) {
+  const caja = document.getElementById(`caja_${id}`);
+  if (!caja) return;
+  caja.querySelector('.caja-textarea').value = '';
+  const inp = caja.querySelector('.mesh-input');
+  if (inp) inp.value = '';
+}
+function borrarTodo() {
+  if (!confirm('¿Eliminar todas las cajas y resultados?')) return;
+  document.getElementById('cajas-wrap').innerHTML = '';
+  contador = 0;
+  limpiarRes();
+  document.querySelectorAll('.btn-esquema').forEach((b,i) => b.classList.toggle('activo', i===0));
+  esquema = 'libre';
+  agregarCaja(false,'','');
+  agregarCaja(false,'','');
+}
+function limpiarRes() {
+  const resDiv = document.getElementById('res-resumen');
+  resDiv.innerHTML = '<span class="res-placeholder">Aquí aparecerá el resumen de los bloques…</span>';
+  document.getElementById('res-cadena').value = '';
+}
+
+
+/* ============================================================
+   GENERAR BÚSQUEDA
+   ============================================================ */
+/* ============================================================
+   PSYCINFO TESAURO
+   ============================================================ */
+function mostrarPsycTesauro(id, mostrar) {
+  const tes = document.getElementById(`psyc-tes_${id}`);
+  if (!tes) return;
+  tes.style.display = mostrar ? '' : 'none';
+  if (mostrar) actualizarPsycTesauro(id);
+}
+
+function actualizarPsycTesauro(id) {
+  const caja = document.getElementById(`caja_${id}`);
+  if (!caja) return;
+  const db    = caja.dataset.db;
+  const campo = caja.dataset.campo;
+  if (db !== 'psycinfo' || (campo !== 'MJSUB' && campo !== 'MAINSUB')) return;
+
+  const ta     = caja.querySelector('.caja-textarea');
+  const body   = document.getElementById(`psyc-body_${id}`);
+  const header = document.querySelector(`#psyc-tes_${id} .psyc-tesauro-header`);
+  if (!body) return;
+
+  if (header) {
+    header.textContent = campo === 'MJSUB'
+      ? 'Tesauro APA — Materia principal: elige Exacto o Con explosión por término'
+      : 'Tesauro APA — Materias: elige Exacto o Con explosión por término';
+  }
+
+  const terms = ta.value.split('\n').map(t => t.trim()).filter(t => t);
+
+  if (!terms.length) {
+    body.innerHTML = '<span class="psyc-empty">Introduce términos en la caja para configurar el tesauro.</span>';
+    return;
+  }
+
+  const prev = {};
+  body.querySelectorAll('.psyc-term-row').forEach(row => {
+    const t   = row.dataset.term;
+    const sel = row.querySelector('input:checked');
+    if (t && sel) prev[t] = sel.value;
+  });
+
+  body.innerHTML = terms.map(t => `
+    <div class="psyc-term-row" data-term="${escAttr(t)}">
+      <span class="psyc-term-text">${esc(t)}</span>
+      <div class="psyc-term-opts">
+        <label class="psyc-radio-label">
+          <input type="radio" name="psyc_${id}_${escAttr(t)}" value="exact" ${(prev[t]||'exact')==='exact'?'checked':''}>
+          Exacto
+        </label>
+        <label class="psyc-radio-label">
+          <input type="radio" name="psyc_${id}_${escAttr(t)}" value="explode" ${prev[t]==='explode'?'checked':''}>
+          Con explosión
+        </label>
+      </div>
+    </div>
+  `).join('');
+}
+
+function getPsycTerms(id, campo) {
+  const body = document.getElementById(`psyc-body_${id}`);
+  if (!body) return null;
+  const rows = body.querySelectorAll('.psyc-term-row');
+  if (!rows.length) return null;
+  const prefix = campo === 'MAINSUB' ? 'MAINSUBJECT' : 'MJSUB';
+  return Array.from(rows).map(row => {
+    const term = row.dataset.term;
+    const tipo = row.querySelector('input:checked')?.value || 'exact';
+    return tipo === 'explode'
+      ? `${prefix}.EXACT.EXPLODE("${term}")`
+      : `${prefix}.EXACT("${term}")`;
+  });
+}
+
+function escAttr(s) {
+  return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function generarBusqueda() {
+  const cajas = Array.from(document.querySelectorAll('.caja'));
+  if (!cajas.length) { mostrarVal('Añade al menos una caja antes de generar.'); return; }
+
+  const bloqInc  = [];
+  const bloqExcl = [];
+
+  for (const caja of cajas) {
+    const id    = caja.id.replace('caja_','');
+    const esEx  = caja.dataset.excl === '1';
+    const nom   = caja.querySelector('.caja-nombre').value.trim() || `Faceta ${id}`;
+    const texto = caja.querySelector('.caja-textarea').value;
+    const db    = caja.dataset.db    || 'pubmed';
+    const campo = caja.dataset.campo || 'All';
+
+    const terms = [...new Set(texto.split('\n').map(t=>t.trim()).filter(t=>t.length))];
+    if (!terms.length) continue;
+
+    let interior, termsFmt;
+
+    // PsycINFO Tesauro: cada término tiene su propia sintaxis exacto/explosión
+    if (db === 'psycinfo' && (campo === 'MJSUB' || campo === 'MAINSUB')) {
+      const psycTerms = getPsycTerms(id, campo);
+      if (psycTerms && psycTerms.length) {
+        interior  = psycTerms.join(' OR ');
+        termsFmt  = psycTerms;
+      } else {
+        interior  = mkBloque(terms, campo, db, db);
+        termsFmt  = formatTerms(terms, campo, db, db);
+      }
+    } else {
+      interior  = mkBloque(terms, campo, db, db);
+      termsFmt  = formatTerms(terms, campo, db, db);
+    }
+
+    const bloque   = db === 'wos' ? interior : `(${interior})`;
+    const termsFmtFinal = termsFmt;
+
+    (esEx ? bloqExcl : bloqInc).push({ nombre: nom, bloque, interior, termsFmt: termsFmtFinal });
+  }
+
+  if (!bloqInc.length && !bloqExcl.length) {
+    mostrarVal('Introduce términos en al menos una caja antes de generar.');
+    return;
+  }
+
+  // ── Cadena final: (bloque1 AND bloque2 AND bloque3) ──────
+  // Paréntesis externo + paréntesis por faceta = estructura estándar PubMed
+  let cadena = `(${bloqInc.map(e => e.bloque).join(' AND ')})`;
+  if (bloqExcl.length) {
+    const exStr = bloqExcl.map(e => e.bloque).join(' AND ');
+    cadena = `(${bloqInc.map(e => e.bloque).join(' AND ')}) AND NOT (${exStr})`;
+  }
+
+  // ── Resumen visual estructurado ───────────────────────────
+  const resDiv = document.getElementById('res-resumen');
+  resDiv.innerHTML = '';
+  const allBlocks = [
+    ...bloqInc.map(e  => ({ ...e, tipo:'inc' })),
+    ...bloqExcl.map(e => ({ ...e, tipo:'excl' })),
+  ];
+
+  allBlocks.forEach((e, i) => {
+    if (i > 0) {
+      const sep = document.createElement('div');
+      sep.className = 'res-and-sep' + (e.tipo === 'excl' ? ' not' : '');
+      sep.textContent = e.tipo === 'excl' ? 'AND NOT' : 'AND';
+      resDiv.appendChild(sep);
+    }
+    const row = document.createElement('div');
+    row.className = 'res-faceta-row';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'res-faceta-label' + (e.tipo === 'excl' ? ' excl' : '');
+    lbl.textContent = e.nombre + ':';
+
+    const val = document.createElement('span');
+    val.className = 'res-faceta-val';
+    val.innerHTML = e.termsFmt.map((t, ti) =>
+      ti === 0 ? esc(t) : `<span class="res-or-sep"> OR </span>${esc(t)}`
+    ).join('');
+
+    row.appendChild(lbl);
+    row.appendChild(val);
+    resDiv.appendChild(row);
+  });
+
+  document.getElementById('res-cadena').value = cadena;
+  document.getElementById('val-msg').classList.remove('show');
+  document.querySelector('.resultado-section').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// Formatea cada término individualmente según campo/db/modo
+function formatTerms(terms, campo, db, modo) {
+  // BUOFind (UniOvi — EBSCO): TI, SU, AB con prefijo antes del término
+  if (db === 'buofind') {
+    const prefMap = { TI: 'TI', SU: 'SU', AB: 'AB', All: '' };
+    const pref = prefMap[campo] || '';
+    return terms.map(t => {
+      const limpio = t.replace(/\[.+?\]/gi,'').replace(/^"|"$/g,'').trim();
+      const fmt    = limpio.includes(' ') ? `"${limpio}"` : limpio;
+      return pref ? `${pref} ${fmt}` : fmt;
+    });
+  }
+
+  // Para Scopus: usar prefijo de campo wrapping todo el bloque
+  if (db === 'scopus') {
+    const pref = PREF_SCOPUS[campo] || 'ALL';
+    return terms.map(t => {
+      const limpio = t.replace(/\[Mesh\]|\[MeSH Terms\]|\[Majr\]|\[tiab\]|\[ti\]/gi,'').replace(/^"|"$/g,'').trim();
+      const fmt    = limpio.includes(' ') ? `"${limpio}"` : limpio;
+      return pref === 'ALL' ? fmt : `${pref}(${fmt})`;
+    });
+  }
+
+  // Para WoS: los campos se aplican al bloque entero con TS= o TI=
+  if (db === 'wos') {
+    return terms.map(t => {
+      const limpio = t.replace(/\[.+?\]/gi,'').replace(/^"|"$/g,'').trim();
+      return limpio.includes(' ') ? `"${limpio}"` : limpio;
+    });
+  }
+
+  // Para el resto: formatear término a término
+  const fmtMap = DB_FORMAT[db] || DB_FORMAT.pubmed;
+  const fn     = fmtMap[campo] || fmtMap['All'] || (t => t);
+
+  return terms.map(t => {
+    // Si ya lleva etiqueta propia → respetar solo para PubMed
+    if (db === 'pubmed' && /\[.+?\]/i.test(t)) {
+      const m = t.replace(/^"|"$/g,'').match(/^(.+?)(\[.+?\])$/);
+      if (m) {
+        const txt = m[1].trim();
+        const tag = m[2];
+        return txt.includes(' ') ? `"${txt}"${tag}` : `${txt}${tag}`;
+      }
+      return t;
+    }
+    // Limpiar etiquetas PubMed si vienen de otra base
+    const limpio = t.replace(/\[.+?\]/gi,'').replace(/^"|"$/g,'').trim();
+    const fmt    = limpio.includes(' ') ? `"${limpio}"` : limpio;
+    return fn(fmt);
+  });
+}
+
+function mkBloque(terms, campo, db, modo) {
+  const fmtTerms = formatTerms(terms, campo, db, modo);
+  const interior = fmtTerms.join(' OR ');
+
+  // WoS: envolver con TS= o TI= según campo
+  if (db === 'wos') {
+    const prefMap = { Topic: 'TS', Abstract: 'AB', Ti: 'TI', KeywordPlus: 'KP', All: 'TS' };
+    const pref = prefMap[campo] || 'TS';
+    return `${pref}=(${interior})`;
+  }
+
+  return interior;
+}
+
+/* ============================================================
+   VALIDACIÓN
+   ============================================================ */
+function mostrarVal(msg) {
+  const el = document.getElementById('val-msg');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+/* ============================================================
+   MESH — BASE LOCAL DE RESPALDO (~300 descriptores NLM 2025)
+   Se usa automáticamente si la API falla (file://, sandbox…)
+   ============================================================ */
+
+function addTerm(cajaId, term, el) {
+  const ta = document.querySelector(`#caja_${cajaId} .caja-textarea`);
+  if (!ta) return;
+  const existing = ta.value.split('\n').map(t=>t.trim().toLowerCase());
+  if (!existing.includes(term.trim().toLowerCase())) {
+    ta.value = ta.value ? ta.value.trimEnd() + '\n' + term : term;
+  }
+  if (el) { el.classList.add('added'); }
+}
+
+/* ============================================================
+   TRADUCTOR DE ESTRATEGIAS ENTRE BASES DE DATOS
+   Convierte la sintaxis de campos entre bases de datos
+   Inspirado en Polyglot Search (sr-accelerator.com)
+   ============================================================ */
+
+function toggleTraductor() {
+  const body    = document.getElementById('trad-body');
+  const chevron = document.getElementById('trad-chevron');
+  const open    = body.style.display === 'none';
+  body.style.display    = open ? '' : 'none';
+  chevron.textContent   = open ? '▴ contraer' : '▾ desplegar';
+}
+
+function usarEcuacionActual() {
+  const eq = document.getElementById('res-cadena').value.trim();
+  if (!eq) { alert('Genera primero la ecuación arriba.'); return; }
+  document.getElementById('trad-input').value = eq;
+}
+
+function selOrigenTrad() {
+  // Actualiza el destino para que no coincida con el origen
+  const origen  = document.getElementById('trad-origen').value;
+  const destino = document.getElementById('trad-destino');
+  [...destino.options].forEach(o => {
+    o.disabled = o.value === origen;
+    if (o.value === origen && o.selected) destino.value =
+      [...destino.options].find(x => x.value !== origen)?.value || '';
+  });
+}
+
+function traducirEstrategia() {
+  const eq      = document.getElementById('trad-input').value.trim();
+  const origen  = document.getElementById('trad-origen').value;
+  const destino = document.getElementById('trad-destino').value;
+
+  if (!eq) { alert('Pega o escribe una ecuación en el campo origen.'); return; }
+  if (origen === destino) { alert('El origen y el destino son la misma base de datos.'); return; }
+
+  const { traducida, notas } = traducir(eq, origen, destino);
+
+  document.getElementById('trad-output').value = traducida;
+  const notasEl = document.getElementById('trad-notas');
+  if (notas.length) {
+    notasEl.innerHTML = '<strong>⚠ Notas de la traducción:</strong><ul>' +
+      notas.map(n => `<li>${n}</li>`).join('') + '</ul>';
+    notasEl.classList.add('show');
+  } else {
+    notasEl.innerHTML = '';
+    notasEl.classList.remove('show');
+  }
+  document.getElementById('trad-resultado-wrap').style.display = '';
+}
+
+function copiarTraduccion() {
+  const v = document.getElementById('trad-output').value;
+  if (!v) return;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(v).then(showToast);
+  } else {
+    const ta = Object.assign(document.createElement('textarea'), { value: v, style: 'position:fixed;opacity:0' });
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+/* ── Motor de traducción ─────────────────────────────────── */
+function traducir(eq, origen, destino) {
+  const notas = [];
+  let out = eq;
+
+  // ── Paso 1: normalizar a forma intermedia sin etiquetas de campo ──
+  // Primero convertimos el origen a texto limpio con marcadores internos
+  let intermedio = normalizarAIntermedio(eq, origen, notas);
+
+  // ── Paso 2: convertir a la sintaxis del destino ──────────
+  out = intermediaADestino(intermedio, destino, notas);
+
+  return { traducida: out, notas };
+}
+
+/* Convierte cualquier origen a objeto intermedio:
+   Array de bloques { terminos:[{texto, esMesh, esTiab, esTi, esAll}], operador }
+   Estrategia simple: transformación textual con regex */
+function normalizarAIntermedio(eq, origen, notas) {
+  // Para PubMed: etiquetas [Mesh], [tiab], [ti], [MeSH Terms], [Majr]
+  // Para Scopus: TITLE-ABS(...), TITLE(...), ALL(...)
+  // Para WoS: TS=, TI=
+  // Devuelve la ecuación con etiquetas normalizadas a [mesh], [tiab], [ti], [all]
+
+  if (origen === 'pubmed') {
+    return eq
+      .replace(/\[MeSH Terms\]/gi,  '[mesh]')
+      .replace(/\[MajorMeSH\]/gi,   '[mesh]')
+      .replace(/\[Majr\]/gi,        '[mesh]')
+      .replace(/\[Mesh\]/gi,        '[mesh]')
+      .replace(/\[tiab\]/gi,        '[tiab]')
+      .replace(/\[ti\]/gi,          '[ti]')
+      .replace(/\[tw\]/gi,          '[tiab]');
+  }
+
+  if (origen === 'scopus') {
+    // TITLE-ABS-KEY(...) → contenido con [tiab]
+    // TITLE(...) → contenido con [ti]
+    // ALL(...) → contenido sin etiqueta
+    let r = eq;
+    r = r.replace(/TITLE-ABS-KEY\(([^)]+)\)/gi, (_, inner) =>
+      inner.split(/\s+OR\s+/i).map(t => `${t.trim()}[tiab]`).join(' OR '));
+    r = r.replace(/TITLE-ABS\(([^)]+)\)/gi, (_, inner) =>
+      inner.split(/\s+OR\s+/i).map(t => `${t.trim()}[tiab]`).join(' OR '));
+    r = r.replace(/TITLE\(([^)]+)\)/gi, (_, inner) =>
+      inner.split(/\s+OR\s+/i).map(t => `${t.trim()}[ti]`).join(' OR '));
+    r = r.replace(/ALL\(([^)]+)\)/gi, (_, inner) => inner);
+    notas.push('Los términos Scopus sin campo específico se han tratado como búsqueda general.');
+    return r;
+  }
+
+  if (origen === 'wos') {
+    // TS=(términos) → [tiab], TI=(términos) → [ti]
+    let r = eq;
+    r = r.replace(/TS\s*=\s*\(([^)]+)\)/gi, (_, inner) =>
+      inner.split(/\s+OR\s+/i).map(t => `${t.trim()}[tiab]`).join(' OR '));
+    r = r.replace(/TI\s*=\s*\(([^)]+)\)/gi, (_, inner) =>
+      inner.split(/\s+OR\s+/i).map(t => `${t.trim()}[ti]`).join(' OR '));
+    r = r.replace(/TS\s*=\s*/gi, '');
+    r = r.replace(/TI\s*=\s*/gi, '');
+    return r;
+  }
+
+  return eq;
+}
+
+function intermediaADestino(eq, destino, notas) {
+  // eq tiene etiquetas normalizadas: [mesh], [tiab], [ti]
+
+  if (destino === 'buofind') {
+    let r = eq
+      .replace(/\[mesh\]/gi,  '')
+      .replace(/\[tiab\]/gi,  '')
+      .replace(/\[ti\]/gi,    '');
+    notas.push('BUOFind usa TI (título), SU (descriptores) y AB (resumen) como prefijos de campo.');
+    notas.push('Pega la ecuación en la búsqueda avanzada de BUOFind (search.ebsco.com) con el campo correspondiente.');
+    return r.trim();
+  }
+
+  if (destino === 'pubmed') {
+    return eq
+      .replace(/\[mesh\]/gi,  '[Mesh]')
+      .replace(/\[tiab\]/gi,  '[tiab]')
+      .replace(/\[ti\]/gi,    '[ti]');
+  }
+
+  if (destino === 'scopus') {
+    // Agrupar por campo: TITLE-ABS(...) para [tiab], TITLE(...) para [ti]
+    // Estrategia: quitar etiquetas MeSH (Scopus no las usa igual) y añadir nota
+    let r = eq
+      .replace(/\[mesh\]/gi,  '')   // Scopus no tiene MeSH directo
+      .replace(/\[tiab\]/gi,  '')
+      .replace(/\[ti\]/gi,    '');
+    // Reconstruir con prefijos Scopus cuando hay grupos
+    r = r.replace(/\(([^()]+)\)/g, (match, inner) => `TITLE-ABS(${inner.trim()})`);
+    notas.push('Scopus no indexa con MeSH. Los descriptores [Mesh] se han convertido a texto libre — considera buscar en TITLE-ABS o usar el tesauro de Emtree.');
+    notas.push('Revisa la ecuación: en Scopus las comillas son obligatorias para frases y los operadores van en MAYÚSCULAS.');
+    return r;
+  }
+
+  if (destino === 'wos') {
+    let r = eq
+      .replace(/"([^"]+)"\[mesh\]/gi,  '"$1"')
+      .replace(/(\w+)\[mesh\]/gi,       '$1')
+      .replace(/"([^"]+)"\[tiab\]/gi,   '"$1"')
+      .replace(/(\w+)\[tiab\]/gi,       '$1')
+      .replace(/"([^"]+)"\[ti\]/gi,     '"$1"')
+      .replace(/(\w+)\[ti\]/gi,         '$1');
+    // Envolver en TS=
+    r = `TS=(${r.replace(/^\(|\)$/g,'')})`;
+    notas.push('Web of Science usa TS= (Topic: título+abstract+palabras clave) o TI= (solo título).');
+    notas.push('WoS no indexa con MeSH — los descriptores se buscan como texto libre en TS=.');
+    return r;
+  }
+
+  if (destino === 'ovid') {
+    let r = eq
+      .replace(/"([^"]+)"\[mesh\]/gi,  'exp $1/')
+      .replace(/(\w+)\[mesh\]/gi,      'exp $1/')
+      .replace(/"([^"]+)"\[tiab\]/gi,  '"$1".ti,ab.')
+      .replace(/(\w+)\[tiab\]/gi,      '$1.ti,ab.')
+      .replace(/"([^"]+)"\[ti\]/gi,    '"$1".ti.')
+      .replace(/(\w+)\[ti\]/gi,        '$1.ti.');
+    notas.push('Ovid MEDLINE usa exp término/ para MeSH con explosión y .ti,ab. para título y resumen.');
+    notas.push('Los operadores booleanos en Ovid van en mayúsculas: AND, OR, NOT.');
+    return r;
+  }
+
+  if (destino === 'cochrane') {
+    let r = eq
+      .replace(/"([^"]+)"\[mesh\]/gi,  '"$1":kw')
+      .replace(/(\w+)\[mesh\]/gi,       '$1:kw')
+      .replace(/"([^"]+)"\[tiab\]/gi,   '"$1":ti,ab,kw')
+      .replace(/(\w+)\[tiab\]/gi,       '$1:ti,ab,kw')
+      .replace(/"([^"]+)"\[ti\]/gi,     '"$1":ti')
+      .replace(/(\w+)\[ti\]/gi,         '$1:ti');
+    notas.push('Cochrane Library usa :ti,ab,kw para título, resumen y palabras clave, y :kw para solo palabras clave.');
+    return r;
+  }
+
+  return eq;
+}
+
+/* ============================================================
+   MESH — Abre NLM MeSH Browser con el término
+   ============================================================ */
+function abrirMesh(id) {
+  const q = (document.getElementById(`minput_${id}`)?.value || '').trim();
+  const url = q
+    ? `https://www.ncbi.nlm.nih.gov/mesh?term=${encodeURIComponent(q)}`
+    : 'https://www.ncbi.nlm.nih.gov/mesh/';
+  window.open(url, '_blank', 'noopener');
+}
+
+/* ============================================================
+   COPIAR
+   ============================================================ */
+function copiarQuery() {
+  const v = document.getElementById('res-cadena').value;
+  if (!v) { mostrarVal('Primero genera la búsqueda.'); return; }
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(v).then(showToast).catch(() => copyFallback(v));
+  } else { copyFallback(v); }
+}
+function copyFallback(txt) {
+  const ta = Object.assign(document.createElement('textarea'),
+    { value: txt, style: 'position:fixed;opacity:0' });
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast(); }
+  catch(e) { alert('No se pudo copiar. Selecciona el texto manualmente.'); }
+  document.body.removeChild(ta);
+}
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+function mostrarCreditos() { document.getElementById('modal-overlay').classList.add('show'); }
+function cerrarModal(e) {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('show');
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+agregarCaja(false,'','');
+agregarCaja(false,'','');
+</script>
+</body>
+</html>
