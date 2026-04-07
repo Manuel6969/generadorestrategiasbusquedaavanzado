@@ -1411,27 +1411,19 @@ function agregarCaja(esExcl=false, nombre='', placeholder='') {
 }
 
 const CAMPO_LABEL = {
-  All:        'Todos',
-  Mesh:       'MeSH',
-  Major:      'MeSH principal',
-  TiAb:       'Título/Resumen',
-  Ti:         'Título',
-  Ab:         'Resumen',
-  TiAbKw:     'Título/Resumen/Palabras clave',
-  Topic:      'Topic',
-  KeywordPlus:'Keywords Plus',
-  MeSH:       'MeSH',
-  MH:         'Encabezamiento',
-  Emtree:     'Emtree',
-  TIAB:       'Título/Resumen',
-  MAINSUB:    'Materias (tesauro)',
-  MAINSUB:    'Materias (tesauro)',
-  SUBJECT:    'Materias',
-  MJSUB:      'Materia principal',
-  DeCS:       'DeCS (tesauro)',
-  AB:         'Resumen',
-  Kw:         'Palabras clave',
+  pubmed:   { All:'All Fields', Mesh:'MeSH Terms', Major:'Major MeSH', TiAb:'Title/Abstract', Ti:'Title' },
+  scopus:   { All:'All fields', TiAbKw:'Title, Abstract, Keywords', Ti:'Article title' },
+  wos:      { All:'All Fields', Topic:'Topic', Abstract:'Abstract', Ti:'Title', KeywordPlus:'Keywords Plus' },
+  ovid:     { All:'All fields', MeSH:'MeSH', TiAb:'.ti,ab.', Ti:'.ti.' },
+  cochrane: { All:'All text', TiAbKw:'Title Abstract Keyword', Ti:'Title', Ab:'Abstract', MeSH:'MeSH' },
+  scholar:  { All:'All', Ti:'intitle:' },
+  buofind:  { All:'All', TI:'TI', SU:'SU', AB:'AB' },
+  psycinfo: { All:'All fields', TIAB:'TIAB', Ti:'Title', AB:'Abstract', SUBJECT:'Subject', MAINSUB:'MainSubject', MJSUB:'Major Subject' },
 };
+
+function getCampoLabel(db, campo) {
+  return (CAMPO_LABEL[db] && CAMPO_LABEL[db][campo]) || campo;
+}
 
 const CAMPO_TOOLTIP = {
   pubmed:   { All:'Todos los campos', Mesh:'Términos MeSH — vocabulario controlado de la NLM', Major:'Tema principal MeSH', TiAb:'Título y Resumen', Ti:'Solo Título' },
@@ -1447,7 +1439,7 @@ const CAMPO_TOOLTIP = {
 function mkCampos(id, db) {
   const tooltips = CAMPO_TOOLTIP[db] || {};
   return (CAMPOS_DB[db]||[]).map((c,i) =>
-    `<button class="btn-campo${i===0?' activo':''}" onclick="selCampo(${id},'${c}',this)" title="${tooltips[c]||c}">${CAMPO_LABEL[c]||c}</button>`
+    `<button class="btn-campo${i===0?' activo':''}" onclick="selCampo(${id},'${c}',this)" title="${tooltips[c]||c}">${getCampoLabel(db,c)}</button>`
   ).join('');
 }
 
